@@ -30,23 +30,66 @@
 
 .data
 	displayAddress: .word 0x10008000
+	skyTop: .word 0x00FFDD3C
+	doodleMan: .word 0x0008183A
+	platforms: .word 0x00392033
+	
 .text
 lw $t0, displayAddress # $t0 stores the base address for display
-li $t1, 0xff0000 # $t1 stores the red colour code
-li $t2, 0x00ff00 # $t2 stores the green colour code
-li $t3, 0x0000ff # $t3 stores the blue colour code
+lw $t1, skyTop # $t1 stores the sky colour code
 
-sw $t1, 0($t0) # paint the first (top-left) unit red.
-sw $t2, 4($t0) # paint the second unit on the first row green. Why $t0+4?
-sw $t3, 128($t0) # paint the first unit on the second row blue. Why +128?
+add $t2, $zero, $zero #store 0 in $t2
+addi $t3, $zero, 1024 #store 256 in $t3
 
-add $t4, $zero, $zero #store 0 in $t4
-addi $t5, $zero, 128 #store 128 in $t5
-LOOP:
-	beq $t4, $t5, Exit #stop loop when $t4==$t5
-	addi, $t4, $t4, 1 #increment $t4 by 1
-	j LOOP
+add $t4, $zero, $t0 #store value of $t0 in $t4
+TopLoop:
+	beq $t2, $t3, TopExit #stop loop when $t2==$t3
+	sw $t1, ($t4) #store sky in the new memoryAddress
+	addi $t2, $t2, 1 #increment $t2 by 1
+	sll $t4, $t2, 2 #$t4 = 4*$t2
+	add $t4, $t4, $t0 #$t4 = iterator + displayAddress = new memoryAddress of each unit
+	j TopLoop
+TopExit:
 
-Exit:
+add $t0, $t0, 512 #change the value of memory to new Y-axis co-ordinate (instead of base)
+lw $t1, platforms #$t1 stores the platform colour code
+addi $t3, $zero, 10 #store 10 in #$t3, which is the platform length
+add $t2, $zero, $zero #reset the value of $t2 to 0
+PlatTopLoop:
+	beq $t2, $t3, PlatTopExit #stop loop when $t2==$t3
+	sw $t1, ($t4) #store sky in the new memoryAddress
+	addi $t2, $t2, 1 #increment $t2 by 1
+	sll $t4, $t2, 2 #$t4 = 4*$t2
+	add $t4, $t4, $t0 #$t4 = iterator + displayAddress = new memoryAddress of each unit
+	j PlatTopLoop
+PlatTopExit:
+
+
+add $t0, $t0, 1300 #change the value of memory to new Y-axis co-ordinate (instead of base)
+addi $t3, $zero, 10 #store 10 in #$t3, which is the platform length
+add $t2, $zero, $zero #reset the value of $t2 to 0
+PlatMidLoop:
+	beq $t2, $t3, PlatMidExit #stop loop when $t2==$t3
+	sw $t1, ($t4) #store sky in the new memoryAddress
+	addi $t2, $t2, 1 #increment $t2 by 1
+	sll $t4, $t2, 2 #$t4 = 4*$t2
+	add $t4, $t4, $t0 #$t4 = iterator + displayAddress = new memoryAddress of each unit
+	j PlatMidLoop
+PlatMidExit:
+
+
+add $t0, $t0, 2224 #change the value of memory to new Y-axis co-ordinate (instead of base)
+addi $t3, $zero, 10 #store 10 in #$t3, which is the platform length
+add $t2, $zero, $zero #reset the value of $t2 to 0
+PlatBotLoop:
+	beq $t2, $t3, PlatBotExit #stop loop when $t2==$t3
+	sw $t1, ($t4) #store sky in the new memoryAddress
+	addi $t2, $t2, 1 #increment $t2 by 1
+	sll $t4, $t2, 2 #$t4 = 4*$t2
+	add $t4, $t4, $t0 #$t4 = iterator + displayAddress = new memoryAddress of each unit
+	j PlatBotLoop
+PlatBotExit:
+
+
 li $v0, 10 # terminate the program gracefully
 syscall
