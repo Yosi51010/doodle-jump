@@ -25,15 +25,7 @@ main:
 #### PROGRAM RUNS HERE ####
 jal drawBackground
 
-#draw THREE platforms at the specified position = (4*x)+(128*y), where 0<=x<=24 and 0<=y<=31
-#addi $a0, $zero, 1980 #x=15, y=15
-#jal drawPlatform
-#addi $a0, $zero, 3800 #x=22, y=29
-#jal drawPlatform
-#addi $a0, $zero, 256 #x=0, y=2
-#jal drawPlatform
-
-#draw THREE platforms RANDOMLY
+#draw THREE platforms RANDOMLY where 0<=x<=24 and 0<=y<=31
 jal generateRandom
 jal drawPlatform
 
@@ -43,28 +35,26 @@ jal drawPlatform
 jal generateRandom
 jal drawPlatform
 
-#draw doodleBot at the specified position = (4*x)+(128*y), where 0<=x<=24 and 0<=y<=31
-lw $t0, displayAddress #$t0 stores the base address for display
-lw $t1, doodleBot #stores the doodleBot colour code in $t1
-addi $t0, $t0, 3624 #change the value of memory to new co-ordinate (instead of base), stored in $a0
+#draw doodleBot where 0<=x<=29 and 0<=y<=28
+#addi $a0, $zero, 0 #x=0
+#addi $a1, $zero, 3 #y=3
+#jal drawDoodle
 
-#head
-sw $t1, ($t0)
-sw $t1, 4($t0)
-#torso
-sw $t1, 124($t0)
-sw $t1, 128($t0)
-sw $t1, 132($t0)
-sw $t1, 136($t0)
-#abdomen
-sw $t1, 252($t0)
-sw $t1, 256($t0)
-sw $t1, 260($t0)
-sw $t1, 264($t0)
-#legs
-sw $t1, 380($t0)
-sw $t1, 392($t0)
-
+#animate doodleBot to move across horizontally across screen
+addi $t5, $zero, 29 # i=1
+addi $t6, $zero, 0# iterate upto 28
+animateLoop:
+	beq $t5, $t6, animateExit #stop loop when $t0==$t1/ while i!=29
+	addi $a0, $zero, 1 #x=i
+	addi $a1,$t5, -1 #y=3
+	jal drawBackground
+	jal drawDoodle
+	addi $t5, $t5, -1 #increment/i+=1
+	li $v0, 32
+	li $a0, 20
+	syscall
+	j animateLoop #loops back to branch statement
+animateExit:
 
 li $v0, 10 #terminate the program gracefully
 syscall
@@ -119,6 +109,31 @@ sll $t1, $a0, 7 #store the random number = 128y
 add $a0, $t0, $t1 #store 4x+128y in $a0 as argument for drawPlatform
 jr $ra #goes back to the location of function call
 
+
+drawDoodle:#draw doodleBot at the specified position = (4*x)+(128*y), where 1<=x<=29 and 0<=y<=28. x,y stored in $a0, $a1. No returns
+lw $t0, displayAddress #$t0 stores the base address for display
+lw $t1, doodleBot #stores the doodleBot colour code in $t1
+sll $t2, $a0, 2 #stores 4*x in $t2
+sll $t3, $a1, 7 #stores 128*y in $t3
+add $t2, $t2, $t3 #stores (4*x)+(128*y) = position offset in $t2
+add $t0, $t0, $t2 #change the value of memory to new position (instead of base) calculated in $t2
+#head
+sw $t1, ($t0)
+sw $t1, 4($t0)
+#torso
+sw $t1, 124($t0)
+sw $t1, 128($t0)
+sw $t1, 132($t0)
+sw $t1, 136($t0)
+#abdomen
+sw $t1, 252($t0)
+sw $t1, 256($t0)
+sw $t1, 260($t0)
+sw $t1, 264($t0)
+#legs
+sw $t1, 380($t0)
+sw $t1, 392($t0)
+jr $ra #goes back to the location of function call
 
 
 

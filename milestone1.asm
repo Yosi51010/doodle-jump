@@ -17,24 +17,30 @@
 #####################################################################
 .data
 	displayAddress: .word 0x10008000
-	sky: .word 0x00FFDD3C
-	doodleBot: .word 0x0008183A
-	platform: .word 0x00392033
-	
+	sky: .word 0x00FFFFFF
+	doodleBot: .word 0x00FFDD3C
+	platform: .word 0x0092DFF3
 .text
 main:
 #### PROGRAM RUNS HERE ####
 jal drawBackground
 
-#draw THREE platforms at the specified position = (4*x)+(128*y), where 0<=x<=24 and 0<=y<=31
-addi $a0, $zero, 1980 #x=15, y=15
+#draw THREE platforms RANDOMLY where 0<=x<=24 and 0<=y<=31
+jal generateRandom
 jal drawPlatform
 
-addi $a0, $zero, 3800 #x=22, y=29
+jal generateRandom
 jal drawPlatform
 
-addi $a0, $zero, 256 #x=0, y=2
+jal generateRandom
 jal drawPlatform
+
+
+#draw doodleBot where 1<=x<=29 and 0<=y<=28
+addi $a0, $zero, 2 #x=2
+addi $a1, $zero, 3 #y=3
+jal drawDoodle
+
 
 
 li $v0, 10 #terminate the program gracefully
@@ -58,7 +64,7 @@ drawExit:
 jr $ra #goes back to the location of function call
 
 
-drawPlatform: #draws a single platform 8 units long. 1 argument of starting coordinate (stored in $a0). No returns.
+drawPlatform: #draws a single platform 8 units long. 1 argument of starting coordinate in $a0. No returns.
 lw $t0, displayAddress # $t0 stores the base address for display
 add $t0, $t0, $a0 #change the value of memory to new co-ordinate (instead of base), stored in $a0
 lw $t1, platform #stores the platform colour code in $t1
@@ -76,8 +82,45 @@ platExit:
 jr $ra #goes back to the location of function call
 
 
+generateRandom: #generates a random position for the platform to spawn. No arguments. 1 return of position in $a0.
+li $v0, 42 #load service 42 into system for random number generation with range
+li $a0, 0 #type of number generation (don't change!)
+li $a1, 25 #store max number such that x < 25
+syscall
+sll $t0, $a0, 2 #store the random number = 4x
+li $v0, 42 #load service 42 into system for random number generation with range
+li $a0, 0 #type of number generation (don't change!)
+li $a1, 32 #store max number such that y < 32
+syscall
+sll $t1, $a0, 7 #store the random number = 128y
+add $a0, $t0, $t1 #store 4x+128y in $a0 as argument for drawPlatform
+jr $ra #goes back to the location of function call
 
 
+drawDoodle:#draw doodleBot at the specified position = (4*x)+(128*y), where 1<=x<=29 and 0<=y<=28. x,y stored in $a0, $a1. No returns
+lw $t0, displayAddress #$t0 stores the base address for display
+lw $t1, doodleBot #stores the doodleBot colour code in $t1
+sll $t2, $a0, 2 #stores 4*x in $t2
+sll $t3, $a1, 7 #stores 128*y in $t3
+add $t2, $t2, $t3 #stores (4*x)+(128*y) = position offset in $t2
+add $t0, $t0, $t2 #change the value of memory to new position (instead of base) calculated in $t2
+#head
+sw $t1, ($t0)
+sw $t1, 4($t0)
+#torso
+sw $t1, 124($t0)
+sw $t1, 128($t0)
+sw $t1, 132($t0)
+sw $t1, 136($t0)
+#abdomen
+sw $t1, 252($t0)
+sw $t1, 256($t0)
+sw $t1, 260($t0)
+sw $t1, 264($t0)
+#legs
+sw $t1, 380($t0)
+sw $t1, 392($t0)
+jr $ra #goes back to the location of function call
 
 
 
