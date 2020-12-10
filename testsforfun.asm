@@ -31,6 +31,12 @@ li $v0, 32
 li $a0, %time
 syscall
 .end_macro	
+
+.macro print (%value)
+li $v0, 1
+move $a0, %value
+syscall
+.end_macro
 ####################################################################
 .data
 	displayAddress: .word 0x10008000
@@ -46,10 +52,26 @@ syscall
 	doodleX: .space 4
 	doodleY: .space 4
 	platformPosition: .space 4
+	#Physics:
+	maxJump: .word 0x4
+	collision: .word 0x0
 .text
 main:
 #### PROGRAM RUNS HERE ####
+startScreen:
+jal drawBackground
+jal generateRandom
+jal drawPlatform
+addi $t0, $zero, 2
+addi $t1, $zero, 28
+sw $t0, doodleX
+sw $t1, doodleY
+jal drawDoodle
+sleep (1000)
+j checkInput
+
 checkInput: #checks for any keyboard input and acts accordingly.
+jal jump
 lw $t8, 0xffff0000 #checks for any input
 beq $t8, 1, checkKey #if there is input, moves to check which key
 j checkInput
@@ -61,28 +83,14 @@ lw $t5, right
 beq $t2, $t3, startScreen
 beq $t2, $t4, moveLeft
 beq $t2, $t5, moveRight
-jal jump
-j checkInput
-
-startScreen:
-jal drawBackground
-jal generateRandom
-jal drawPlatform
-addi $t0, $zero, 2
-addi $t1, $zero, 28
-sw $t0, doodleX
-sw $t1, doodleY
-jal jump
 j checkInput
 
 moveLeft:
 jal moveLeftFunc
-jal jump
 j checkInput
 
 moveRight:
 jal moveRightFunc
-jal jump
 j checkInput
 
 li $v0, 10 #terminate the program gracefully
@@ -101,16 +109,61 @@ sw $t0, doodleX
 jr $ra
 
 jump:
-pushStack
+addi $sp, $sp, -8
+sw $ra, 0($sp)
+
+lw $a1, doodleY
+lw $t0, maxJump
+lw $t1, collision
+addi $t2, $zero, 1
+print ($t0)
+beq $a1, $t0, fallCode
+beq $t1, $t0, climbCode
+lw $ra, 0($sp)
+addi $sp, $sp, 8
+jr $ra
+
+climbCode:
+jal climb
+
+fallCode:
+jal fall
+
+climb:
+sleep (300)
+addi $sp, $sp, -4
+sw $ra, -4($sp)
+
 lw $a0, doodleX
 lw $a1, doodleY
 subi $a1, $a1, 1
+sw $a1, doodleY
 jal drawBackground
 jal drawPlatform
 jal drawDoodle
-sleep (100)
-popStack
+
+lw $ra, -4($sp)
+addi $sp, $sp, 4
 jr $ra
+
+fall:
+sleep (300)
+addi $sp, $sp, -4
+sw $ra, -4($sp)
+
+lw $a0, doodleX
+lw $a1, doodleY
+addi $a1, $a1, 1
+sw $a1, doodleY
+jal drawBackground
+jal drawPlatform
+jal drawDoodle
+
+lw $ra, -4($sp)
+addi $sp, $sp, 4
+jr $ra
+
+
 
 drawBackground: #colours the whole screen with colour sky. No arguments. No returns.
 lw $t0, displayAddress #$t0 stores the base address for display
@@ -189,36 +242,9 @@ sw $t1, 264($t0)
 #legs
 sw $t1, 380($t0)
 sw $t1, 392($t0)
-
 jr $ra #goes back to the location of function call
 
 
-clearDoodle:#draw doodleBot at the specified position = (4*x)+(128*y), where 1<=x<=29 and 0<=y<=28. x,y stored in $a0, $a1. No returns
-lw $t0, displayAddress #$t0 stores the base address for display
-lw $t1, sky #stores the sky colour code in $t1
-lw $t5, doodleX #retrieves x-value
-lw $t6, doodleY #retrieves y-value
-sll $t2, $t5, 2 #stores 4*x in $t2
-sll $t3, $t6, 7 #stores 128*y in $t3
-add $t2, $t2, $t3 #stores (4*x)+(128*y) = position offset in $t2
-add $t0, $t0, $t2 #change the value of memory to new position (instead of base) calculated in $t2
-#head
-sw $t1, ($t0)
-sw $t1, 4($t0)
-#torso
-sw $t1, 124($t0)
-sw $t1, 128($t0)
-sw $t1, 132($t0)
-sw $t1, 136($t0)
-#abdomen
-sw $t1, 252($t0)
-sw $t1, 256($t0)
-sw $t1, 260($t0)
-sw $t1, 264($t0)
-#legs
-sw $t1, 380($t0)
-sw $t1, 392($t0)
-jr $ra #goes back to the location of function call
 
 
 
